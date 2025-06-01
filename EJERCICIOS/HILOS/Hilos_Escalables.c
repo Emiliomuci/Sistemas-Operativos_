@@ -7,9 +7,10 @@
 	
 	//EL hilo numero 7 con ID  e234242 es acabado
 	//Osea el ultimo hilo que se ha creado es el primero en morir
-
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
+
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -42,7 +43,7 @@ int main(int argc, char **argv)
 			pthread_join(hilo[i], NULL);
 	}
 	
-	printf("Presiona lo que sea en el teclado: ");
+	printf("Presiona lo que sea en el teclado: \n");
 	getchar();
 	
 	for (int i = NUMEROHILOS - 1; i >= 0; i --)
@@ -56,15 +57,25 @@ int main(int argc, char **argv)
 	
 	char texto[100];
 	
-	printf("Escribe un texto");
+	printf("Escribe un texto\n");
 	scanf("%s",texto);
 	
 	int inversa = strlen(texto);
-	
+	int contadorVocales = 0;
 	for (int i = inversa - 1; i >= 0; i--)
 	{
+		char letra = texto[i];
 		printf("%c", texto[i]);
+		
+		
+		letra = tolower(letra);
+		if(letra == 'a' || letra == 'e' || letra == 'i' || letra == 'o' || letra == 'u'){
+			contadorVocales++;
+		}
+		
+		
 	}
+	printf("\nVocales: %d\n", contadorVocales);
 
 	
 	
@@ -72,3 +83,4 @@ int main(int argc, char **argv)
 	
 	return 0;
 }
+
