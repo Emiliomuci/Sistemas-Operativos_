@@ -1,0 +1,151 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <time.h>
+#define NUMERO 5
+static int *num_Ingresado;
+
+static int *factorial_Variable;
+pthread_mutex_t mutex;
+
+int factorial (int n){
+	int res = 1;
+	
+	for (int i = 1; i <= n; i++)
+	{
+		res*=i;
+	}
+	printf("Factorial: %d\n", res);
+	return res;
+}
+
+
+int sumas (int n){
+	int dato =  5;
+	
+	for (int i = 1; i <= n; i++)
+	{
+		dato += i;
+		
+	}
+	printf("SUMA: %d\n", dato);
+	return dato;
+}
+
+void* factorialHilo ( void* arg){
+	pthread_mutex_lock (&mutex);
+	for (int i = 0; i < NUMERO; i++)
+	{
+		factorial_Variable[i] = factorial(num_Ingresado[i]);
+	}
+		pthread_mutex_unlock (&mutex);
+
+	return NULL;
+}
+
+void* suma (void* arg ){
+		pthread_mutex_lock (&mutex);
+
+	for (int i = 0; i < NUMERO; i++)
+	{
+		factorial_Variable[i + NUMERO] = sumas(num_Ingresado[i]);
+		
+	}
+		pthread_mutex_unlock (&mutex);
+return NULL;
+}
+
+
+
+
+int main(int argc, char **argv)
+{
+	pid_t pid;
+	pthread_t hilo1, hilo2;
+	int tuberia[2];
+	
+	num_Ingresado = mmap(NULL,sizeof * num_Ingresado, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    factorial_Variable = mmap(NULL,sizeof * factorial_Variable * 2, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
+	
+	for (int i = 0; i < NUMERO; i++)
+	{
+	printf("Escribe un numero: \n");
+	scanf("%d", &num_Ingresado[i]);
+	}
+
+	
+	if(pipe(tuberia) == -1){
+		perror("Inválida tuberia");
+		return -1;
+	}
+	
+	
+	pid = fork();
+	if(pid < 0 ){
+		perror("inválid fork");
+		return -1;
+	}
+	
+	else if(pid == 0){
+		
+				close(tuberia[0]);
+
+		
+		pthread_create (&hilo1, NULL, factorialHilo, NULL);
+		pthread_create (&hilo2, NULL, suma, NULL);
+
+		pthread_join(hilo1, NULL);
+		pthread_join(hilo2, NULL);
+
+		
+		
+		write (tuberia[1], factorial_Variable, sizeof (int) * NUMERO);
+		write (tuberia[1], factorial_Variable, sizeof (int) * NUMERO *2);
+
+		
+		close(tuberia[1]);
+		
+		
+		
+		
+		
+	}
+	else{
+				close(tuberia[1]);
+	
+	
+	wait(NULL);
+	int resultadoFacto[NUMERO];
+	int resultadoSuma[NUMERO * 2];
+			read(tuberia[0], resultadoFacto, sizeof (int) * NUMERO);
+			read(tuberia[0], resultadoSuma, sizeof (int) * NUMERO *2);
+
+			
+			
+			for (int i = 0; i < NUMERO; i++)
+			{
+				printf("PADRE: %d\n", resultadoFacto[i]);
+				printf("PADRE: suma %d\n", resultadoSuma[i + NUMERO]);
+
+			}
+			
+			
+
+
+
+
+				close(tuberia[0]);
+
+		
+	}
+			
+	
+	
+	
+	return 0;
+}
